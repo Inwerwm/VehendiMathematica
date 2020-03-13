@@ -22,6 +22,11 @@ namespace VehendiMathematica
         /// </summary>
         float Norm { get; }
 
+        /// <summary>
+        /// 正規化
+        /// </summary>
+        void Normalize();
+
         List<float> ToList();
         float[] ToArray();
     }
@@ -33,6 +38,18 @@ namespace VehendiMathematica
         public Vector2(float x = 0, float y = 0)
         {
             vector = new float[2] { x, y };
+        }
+
+        public Vector2(IEnumerable<float> enu)
+        {
+            vector = new float[2];
+            int i = 0;
+            IEnumerator e = enu.GetEnumerator();
+            while (e.MoveNext() && i < 2)
+            {
+                vector[i] = (float)e.Current;
+                i++;
+            }
         }
 
         public Vector2(IVector vec)
@@ -99,6 +116,11 @@ namespace VehendiMathematica
 
         public float Norm => VectorCalculator.Norm(this);
 
+        public void Normalize()
+        {
+            vector = VectorCalculator.Normalize(this).ToArray();
+        }
+
         public float[] ToArray()
         {
             return vector;
@@ -131,6 +153,30 @@ namespace VehendiMathematica
         {
             return (Vector2)VectorCalculator.Sub(vec1, vec2);
         }
+        public static Vector2 operator *(Vector2 vec, float times)
+        {
+            return new Vector2(vec.Select(v => v * times));
+        }
+        public static Vector2 operator /(Vector2 vec, float div)
+        {
+            return new Vector2(vec.Select(v => v / div));
+        }
+
+        /// <summary>
+        /// 内積
+        /// </summary>
+        public float Dot(Vector2 vec)
+        {
+            return VectorCalculator.Dot(this, vec);
+        }
+
+        /// <summary>
+        /// 外積
+        /// </summary>
+        public float Cross(Vector2 vec)
+        {
+            return X * vec.Y - Y * vec.X;
+        }
     }
 
     public class Vector3 : IVector
@@ -150,6 +196,18 @@ namespace VehendiMathematica
             for (int i = 0; i < vec.Dimension; i++)
             {
                 vector[i] = vec[i];
+            }
+        }
+
+        public Vector3(IEnumerable<float> enu)
+        {
+            vector = new float[3];
+            int i = 0;
+            IEnumerator e = enu.GetEnumerator();
+            while (e.MoveNext() && i < 3)
+            {
+                vector[i] = (float)e.Current;
+                i++;
             }
         }
 
@@ -217,6 +275,11 @@ namespace VehendiMathematica
 
         public float Norm => VectorCalculator.Norm(this);
 
+        public void Normalize()
+        {
+            vector = VectorCalculator.Normalize(this).ToArray();
+        }
+
         public float[] ToArray()
         {
             return vector;
@@ -249,25 +312,72 @@ namespace VehendiMathematica
         {
             return (Vector3)VectorCalculator.Sub(vec1, vec2);
         }
+        public static Vector3 operator *(Vector3 vec, float times)
+        {
+            return new Vector3(vec.Select(v => v * times));
+        }
+        public static Vector3 operator /(Vector3 vec, float div)
+        {
+            return new Vector3(vec.Select(v => v / div));
+        }
+
+        /// <summary>
+        /// 内積
+        /// </summary>
+        public float Dot(Vector3 vec)
+        {
+            return VectorCalculator.Dot(this, vec);
+        }
+
+        /// <summary>
+        /// 外積
+        /// </summary>
+        public Vector3 Cross(Vector3 vec)
+        {
+            return new Vector3
+            {
+                X = Y * vec.Z - vec.Y * Z,
+                Y = Z * vec.X - vec.Z * X,
+                Z = X * vec.Y - vec.X * Y
+            };
+        }
     }
 
     public static class VectorCalculator
     {
+        /// <summary>
+        /// 2乗ノルム
+        /// </summary>
         public static float SqNorm(IVector vec)
         {
             return vec.Sum(v => v * v);
         }
 
+        /// <summary>
+        /// ノルム
+        /// </summary>
         public static float Norm(IVector vec)
         {
             return (float)Math.Sqrt(SqNorm(vec));
         }
 
         /// <summary>
+        /// 正規化
+        /// </summary>
+        public static IVector Normalize(IVector vec)
+        {
+            var v = (IVector)vec.Clone();
+            var sum = v.Sum();
+            for (int i = 0; i < v.Dimension; i++)
+            {
+                v[i] = vec[i] / sum;
+            }
+            return v;
+        }
+
+        /// <summary>
         /// 低次元ベクトルを拡張する
         /// </summary>
-        /// <param name="vec"></param>
-        /// <returns></returns>
         public static IVector Extend(IVector vec, int dimension)
         {
             switch (dimension)
@@ -284,6 +394,9 @@ namespace VehendiMathematica
             }
         }
 
+        /// <summary>
+        /// 加算
+        /// </summary>
         public static IVector Add(params IVector[] vec)
         {
             var v1 = (IVector)vec[0].Clone();
@@ -307,6 +420,9 @@ namespace VehendiMathematica
             return v1;
         }
 
+        /// <summary>
+        /// 減算
+        /// </summary>
         public static IVector Sub(params IVector[] vec)
         {
             var v1 = (IVector)vec[0].Clone();
@@ -328,6 +444,31 @@ namespace VehendiMathematica
                 }
             }
             return v1;
+        }
+
+        /// <summary>
+        /// 内積
+        /// </summary>
+        public static float Dot(IVector vec1, IVector vec2)
+        {
+            IVector v1;
+            IVector v2;
+
+            if (vec1.Dimension < vec2.Dimension)
+                v1 = Extend(vec1, vec2.Dimension);
+            else
+                v1 = (IVector)vec1.Clone();
+
+            if (vec1.Dimension > vec2.Dimension)
+                v2 = Extend(vec2, vec1.Dimension);
+            else
+                v2 = vec2;
+
+            for (int i = 0; i < v1.Dimension; i++)
+            {
+                v1[i] *= v2[i];
+            }
+            return v1.Sum();
         }
     }
 
